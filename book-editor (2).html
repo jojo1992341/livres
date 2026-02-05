@@ -307,11 +307,14 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Format du texte
                         </label>
-                        <div class="flex gap-2 mb-3">
+                        <div class="flex flex-wrap gap-2 mb-3">
                             <button onclick="insertTag('h1')" class="btn btn-secondary text-sm">Titre H1</button>
                             <button onclick="insertTag('h2')" class="btn btn-secondary text-sm">Titre H2</button>
                             <button onclick="insertTag('p')" class="btn btn-secondary text-sm">Paragraphe</button>
                             <button onclick="insertTag('blockquote')" class="btn btn-secondary text-sm">Citation</button>
+                            <button onclick="centerCurrentLine()" class="btn btn-secondary text-sm">Centrer ligne</button>
+                            <button onclick="italicizeCurrentLine()" class="btn btn-secondary text-sm">Italique ligne</button>
+                            <button onclick="insertLineBreak()" class="btn btn-secondary text-sm">Saut de ligne</button>
                         </div>
                     </div>
                     
@@ -575,6 +578,56 @@
             editor.value = beforeText + newText + afterText;
             editor.focus();
             editor.selectionStart = editor.selectionEnd = start + newText.length;
+        }
+
+        function getCurrentLineBounds(text, cursorPosition) {
+            const lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1;
+            const nextNewLine = text.indexOf('\n', cursorPosition);
+            const lineEnd = nextNewLine === -1 ? text.length : nextNewLine;
+
+            return { lineStart, lineEnd };
+        }
+
+        function centerCurrentLine() {
+            const editor = document.getElementById('contentEditor');
+            const cursorPosition = editor.selectionStart;
+            const { lineStart, lineEnd } = getCurrentLineBounds(editor.value, cursorPosition);
+            const currentLine = editor.value.substring(lineStart, lineEnd);
+
+            if (!currentLine.trim()) {
+                return;
+            }
+
+            const centeredLine = `<p style="text-align: center;">${currentLine.trim()}</p>`;
+            editor.value = editor.value.substring(0, lineStart) + centeredLine + editor.value.substring(lineEnd);
+            editor.focus();
+            editor.selectionStart = editor.selectionEnd = lineStart + centeredLine.length;
+        }
+
+        function italicizeCurrentLine() {
+            const editor = document.getElementById('contentEditor');
+            const cursorPosition = editor.selectionStart;
+            const { lineStart, lineEnd } = getCurrentLineBounds(editor.value, cursorPosition);
+            const currentLine = editor.value.substring(lineStart, lineEnd);
+
+            if (!currentLine.trim()) {
+                return;
+            }
+
+            const italicLine = `<p><em>${currentLine.trim()}</em></p>`;
+            editor.value = editor.value.substring(0, lineStart) + italicLine + editor.value.substring(lineEnd);
+            editor.focus();
+            editor.selectionStart = editor.selectionEnd = lineStart + italicLine.length;
+        }
+
+        function insertLineBreak() {
+            const editor = document.getElementById('contentEditor');
+            const cursorPosition = editor.selectionStart;
+            const lineBreak = '<br>\n';
+
+            editor.value = editor.value.substring(0, cursorPosition) + lineBreak + editor.value.substring(cursorPosition);
+            editor.focus();
+            editor.selectionStart = editor.selectionEnd = cursorPosition + lineBreak.length;
         }
         
         /**
