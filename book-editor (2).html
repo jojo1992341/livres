@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur de Livres — Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Configuration typographique de base */
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Lato', sans-serif;
+        }
+        
+        /* Styles pour le contenu du livre */
+        .book-content {
+            font-family: 'Crimson Text', serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            text-align: justify;
+            hyphens: auto;
+        }
+        
+        .book-content h1 {
+            font-size: 18pt;
+            font-weight: 600;
+            margin: 1.5em 0 1em 0;
+            text-align: center;
+        }
+        
+        .book-content h2 {
+            font-size: 14pt;
+            font-weight: 600;
+            margin: 1.2em 0 0.8em 0;
+        }
+        
+        .book-content p {
+            margin-bottom: 0.8em;
+            text-indent: 1.5em;
+        }
+        
+        .book-content p:first-of-type,
+        .book-content h1 + p,
+        .book-content h2 + p {
+            text-indent: 0;
+        }
+        
+        .book-content blockquote {
+            font-style: italic;
+            margin: 1em 2em;
+            padding-left: 1em;
+            border-left: 2px solid #999;
+        }
+        
+        /* Format de page physique : 11 × 17,8 cm */
+        .page-preview {
+            width: 11cm;
+            height: 17.8cm;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin: 20px auto;
+            padding: 1.5cm 1.2cm;
+            box-sizing: border-box;
+            page-break-after: always;
+            position: relative;
+        }
+        
+        .cover-preview {
+            width: 11cm;
+            height: 17.8cm;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin: 20px auto;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            padding: 0;
+        }
+        
+        .cover-preview.full-image {
+            padding: 0;
+        }
+        
+        .cover-preview.full-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Zone d'édition */
+        .editor-area {
+            font-family: 'Crimson Text', serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 300px;
+            resize: vertical;
+        }
+        
+        /* Boutons d'action */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #475569;
+        }
+        
+        .btn-success {
+            background: #059669;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #047857;
+        }
+        
+        /* Navigation par onglets */
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            background: #f1f5f9;
+        }
+        
+        .tab.active {
+            border-bottom-color: #2563eb;
+            font-weight: 600;
+            color: #2563eb;
+        }
+        
+        /* Numérotation des pages */
+        .page-number {
+            position: absolute;
+            bottom: 0.5cm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+        
+        .page-number.hidden-number {
+            display: none;
+        }
+        
+        .page-controls {
+            position: absolute;
+            top: 0.3cm;
+            right: 0.3cm;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.2cm;
+            border-radius: 4px;
+            font-size: 8pt;
+            display: flex;
+            align-items: center;
+            gap: 0.2cm;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .page-controls label {
+            display: flex;
+            align-items: center;
+            gap: 0.1cm;
+            cursor: pointer;
+            font-size: 8pt;
+        }
+        
+        .page-controls input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        /* Zone de dépôt d'images */
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .drop-zone:hover {
+            border-color: #2563eb;
+            background: #f8fafc;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        
+        /* Masquer les éléments */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Conteneur d'image dans le livre */
+        .book-image {
+            max-width: 100%;
+            height: auto;
+            margin: 1em auto;
+            display: block;
+        }
+        
+        /* Styles pour la couverture */
+        .cover-title {
+            font-size: 24pt;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .cover-author {
+            font-size: 14pt;
+            text-align: center;
+            margin-top: 1em;
+        }
+        
+        .cover-image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .cover-image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- En-tête de l'application -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-800">Éditeur de Livres</h1>
+                <div class="flex gap-3">
+                    <button onclick="saveProject()" class="btn btn-secondary">
+                        💾 Sauvegarder (JSON)
+                    </button>
+                    <button onclick="loadProject()" class="btn btn-secondary">
+                        📂 Charger projet
+                    </button>
+                    <button onclick="exportPDF()" class="btn btn-success">
+                        📄 Exporter PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation par onglets -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex gap-1">
+                <div class="tab active" onclick="switchTab('content')">📝 Contenu</div>
+                <div class="tab" onclick="switchTab('cover')">📕 Couverture</div>
+                <div class="tab" onclick="switchTab('settings')">⚙️ Paramètres</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        
+        <!-- Onglet : Contenu du livre -->
+        <section id="tab-content" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <!-- Zone d'édition -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold mb-4">Éditeur de contenu</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Format du texte
+                        </label>
+                        <div class="flex gap-2 mb-3">
+                            <button onclick="insertTag('h1')" class="btn btn-secondary text-sm">Titre H1</button>
+                            <button onclick="insertTag('h2')" class="btn btn-secondary text-sm">Titre H2</button>
+                            <button onclick="insertTag('p')" class="btn btn-secondary text-sm">Paragraphe</button>
+                            <button onclick="insertTag('blockquote')" class="btn btn-secondary text-sm">Citation</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Insérer une image
+                        </label>
+                        <input type="file" id="imageInput" accept="image/*" onchange="insertImage()" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    
+                    <textarea 
+                        id="contentEditor" 
+                        class="editor-area w-full"
+                        placeholder="Saisissez votre texte ici... Utilisez les balises HTML : <h1>Titre</h1>, <p>Paragraphe</p>, <blockquote>Citation</blockquote>"
+                    ><h1>Le Voyage Intérieur</h1>
+
+<p>Dans les méandres de la conscience humaine se cache un univers aussi vaste que mystérieux. Chaque pensée devient une étoile, chaque souvenir une constellation. C'est dans ce silence intérieur que naissent les plus grandes révélations.</p>
+
+<p>L'homme moderne, prisonnier du tumulte quotidien, oublie trop souvent de regarder en lui-même. Pourtant, c'est là que réside la véritable connaissance, celle qui transcende les apparences et touche à l'essence même de notre être.</p>
+
+<h2>La Quête de Sens</h2>
+
+<p>Depuis la nuit des temps, l'humanité cherche des réponses. Les philosophes ont érigé des systèmes de pensée, les artistes ont sculpté la beauté, les scientifiques ont percé les secrets de la matière. Mais la question demeure : qui sommes-nous vraiment ?</p>
+
+<blockquote>Le seul véritable voyage est celui qui nous ramène à nous-mêmes, dans la simplicité d'un instant présent pleinement vécu.</blockquote>
+
+<p>Cette quête n'est pas un chemin linéaire. Elle serpente, bifurque, se perd parfois dans des impasses. Mais chaque détour nous enseigne, chaque erreur nous façonne. C'est dans l'acceptation de notre imperfection que nous touchons à la sagesse.</p>
+
+<h2>L'Éveil de la Conscience</h2>
+
+<p>Quelque chose se produit lorsque nous cessons de fuir. Un espace s'ouvre, vaste et silencieux. Dans cet espace, les pensées ne disparaissent pas, mais elles perdent leur emprise. Nous devenons observateurs de notre propre théâtre mental.</p>
+
+<p>Cette observation n'est pas passive. Elle est active, vivante, pleine d'une présence qui transforme tout ce qu'elle touche. Les peurs s'apaisent, les désirs se tempèrent, et une paix profonde émerge du chaos.</p></textarea>
+                    
+                    <button onclick="updatePreview()" class="btn btn-primary w-full mt-4">
+                        🔄 Mettre à jour l'aperçu
+                    </button>
+                </div>
+                
+                <!-- Zone de prévisualisation -->
+                <div class="bg-gray-100 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">Prévisualisation</h2>
+                    <div id="previewContainer" class="overflow-auto max-h-[800px]">
+                        <!-- Les pages seront générées ici -->
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+        
+        <!-- Onglet : Couverture -->
+        <section id="tab-cover" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <!-- Éditeur de couverture -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold mb-4">Conception de la couverture</h2>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Image de première de couverture (pleine page)
+                        </label>
+                        <input 
+                            type="file" 
+                            id="frontCoverImageInput" 
+                            accept="image/*" 
+                            onchange="updateFrontCoverImage()"
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">L'image couvrira toute la page sans marge (11 × 17,8 cm)</p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Image de quatrième de couverture (pleine page)
+                        </label>
+                        <input 
+                            type="file" 
+                            id="backCoverImageInput" 
+                            accept="image/*" 
+                            onchange="updateBackCoverImage()"
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">L'image couvrira toute la page sans marge (11 × 17,8 cm)</p>
+                    </div>
+                    
+                    <button onclick="updateCoverPreview()" class="btn btn-primary w-full">
+                        🔄 Mettre à jour la couverture
+                    </button>
+                </div>
+                
+                <!-- Prévisualisation de la couverture -->
+                <div class="bg-gray-100 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">Aperçu de la couverture</h2>
+                    
+                    <h3 class="text-sm font-medium text-gray-700 mb-2">Première de couverture</h3>
+                    <div id="frontCoverPreview" class="cover-preview mb-6"></div>
+                    
+                    <h3 class="text-sm font-medium text-gray-700 mb-2">Quatrième de couverture</h3>
+                    <div id="backCoverPreview" class="cover-preview"></div>
+                </div>
+                
+            </div>
+        </section>
+        
+        <!-- Onglet : Paramètres -->
+        <section id="tab-settings" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6 max-w-2xl">
+                <h2 class="text-xl font-semibold mb-4">Paramètres du livre</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Format de page (fixe)
+                    </label>
+                    <input 
+                        type="text" 
+                        value="11 × 17,8 cm"
+                        disabled
+                        class="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100"
+                    >
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Marges intérieures (cm)
+                    </label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-gray-600">Haut/Bas</label>
+                            <input 
+                                type="number" 
+                                id="marginVertical" 
+                                value="1.5"
+                                step="0.1"
+                                class="w-full px-4 py-2 border border-gray-300 rounded"
+                            >
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600">Gauche/Droite</label>
+                            <input 
+                                type="number" 
+                                id="marginHorizontal" 
+                                value="1.2"
+                                step="0.1"
+                                class="w-full px-4 py-2 border border-gray-300 rounded"
+                            >
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Famille de police
+                    </label>
+                    <select 
+                        id="fontFamily"
+                        onchange="applyFontFamily()"
+                        class="w-full px-4 py-2 border border-gray-300 rounded"
+                    >
+                        <option value="'Crimson Text', serif">Crimson Text (défaut)</option>
+                        <option value="'Georgia', serif">Georgia</option>
+                        <option value="'Garamond', serif">Garamond</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Taille de police (pt)
+                    </label>
+                    <input 
+                        type="number" 
+                        id="fontSize" 
+                        value="11"
+                        min="8"
+                        max="16"
+                        onchange="applyFontSize()"
+                        class="w-full px-4 py-2 border border-gray-300 rounded"
+                    >
+                </div>
+                
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded">
+                    <p class="text-sm text-blue-800">
+                        <strong>Note :</strong> Les modifications de marges et de typographie seront appliquées lors de la prochaine mise à jour de l'aperçu.
+                    </p>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+    
+    <!-- Input caché pour charger un projet -->
+    <input type="file" id="projectLoader" accept=".json" class="hidden" onchange="handleProjectLoad(event)">
+
+    <script>
+        // Variables globales pour stocker l'état du projet
+        let projectData = {
+            content: '',
+            frontCoverImage: null,
+            backCoverImage: null,
+            pageNumbersVisible: {}, // stocke pour chaque page si le numéro est visible
+            settings: {
+                marginVertical: 1.5,
+                marginHorizontal: 1.2,
+                fontFamily: "'Crimson Text', serif",
+                fontSize: 11
+            }
+        };
+        
+        // Stockage temporaire des images en base64
+        let imageStore = [];
+        
+        /**
+         * Gestion de la navigation par onglets
+         */
+        function switchTab(tabName) {
+            // Masquer tous les contenus d'onglets
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Retirer la classe active de tous les onglets
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Afficher le contenu sélectionné
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            
+            // Activer l'onglet cliqué
+            event.target.classList.add('active');
+        }
+        
+        /**
+         * Insertion de balises HTML dans l'éditeur
+         */
+        function insertTag(tag) {
+            const editor = document.getElementById('contentEditor');
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = editor.value.substring(start, end);
+            const beforeText = editor.value.substring(0, start);
+            const afterText = editor.value.substring(end);
+            
+            let newText = '';
+            
+            if (selectedText) {
+                newText = `<${tag}>${selectedText}</${tag}>`;
+            } else {
+                if (tag === 'p') {
+                    newText = `<p>Nouveau paragraphe</p>`;
+                } else if (tag === 'h1') {
+                    newText = `<h1>Nouveau titre</h1>`;
+                } else if (tag === 'h2') {
+                    newText = `<h2>Nouveau sous-titre</h2>`;
+                } else if (tag === 'blockquote') {
+                    newText = `<blockquote>Citation</blockquote>`;
+                }
+            }
+            
+            editor.value = beforeText + newText + afterText;
+            editor.focus();
+            editor.selectionStart = editor.selectionEnd = start + newText.length;
+        }
+        
+        /**
+         * Insertion d'une image dans le contenu
+         */
+        function insertImage() {
+            const input = document.getElementById('imageInput');
+            const file = input.files[0];
+            
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result;
+                const imageId = 'img_' + Date.now();
+                
+                // Stocker l'image
+                imageStore.push({
+                    id: imageId,
+                    data: imageData
+                });
+                
+                // Insérer la balise dans l'éditeur
+                const editor = document.getElementById('contentEditor');
+                const imgTag = `<img src="${imageData}" class="book-image" data-img-id="${imageId}" alt="Image">`;
+                
+                const start = editor.selectionStart;
+                const beforeText = editor.value.substring(0, start);
+                const afterText = editor.value.substring(start);
+                
+                editor.value = beforeText + imgTag + afterText;
+                
+                // Réinitialiser l'input
+                input.value = '';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        /**
+         * Mise à jour de l'aperçu du contenu avec pagination correcte
+         */
+        function updatePreview() {
+            const content = document.getElementById('contentEditor').value;
+            const container = document.getElementById('previewContainer');
+            
+            // Créer un div temporaire pour parser le HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            tempDiv.className = 'book-content';
+            tempDiv.style.fontFamily = projectData.settings.fontFamily;
+            tempDiv.style.fontSize = projectData.settings.fontSize + 'pt';
+            
+            // Vider le conteneur
+            container.innerHTML = '';
+            
+            // Créer une page de travail invisible pour mesurer le contenu
+            const measurePage = document.createElement('div');
+            measurePage.className = 'page-preview';
+            measurePage.style.position = 'absolute';
+            measurePage.style.visibility = 'hidden';
+            measurePage.style.left = '-9999px';
+            document.body.appendChild(measurePage);
+            
+            const measureContent = document.createElement('div');
+            measureContent.className = 'page-content book-content';
+            measureContent.style.fontFamily = projectData.settings.fontFamily;
+            measureContent.style.fontSize = projectData.settings.fontSize + 'pt';
+            measurePage.appendChild(measureContent);
+            
+            // Récupérer tous les éléments du contenu
+            const elements = Array.from(tempDiv.children);
+            
+            let currentPage = createNewPage(1);
+            container.appendChild(currentPage);
+            let pageNumber = 1;
+            
+            // Hauteur maximale du contenu (en pixels)
+            // 17.8 cm - marges haut/bas (1.5cm x 2) - espace pour numéro de page (1cm) = 13.8cm disponible
+            const pageHeightCm = 17.8;
+            const marginVertical = projectData.settings.marginVertical;
+            const pageNumberSpace = 1.0; // cm pour le numéro de page en bas
+            const availableHeightCm = pageHeightCm - (marginVertical * 2) - pageNumberSpace;
+            
+            // Conversion cm -> pixels (approximativement 37.8 pixels par cm à 96 DPI)
+            const maxContentHeight = availableHeightCm * 37.8;
+            
+            elements.forEach((element) => {
+                // Ajouter l'élément à la page de mesure
+                measureContent.innerHTML = '';
+                measureContent.appendChild(element.cloneNode(true));
+                
+                // Mesurer la hauteur de la page actuelle
+                const currentPageContent = currentPage.querySelector('.page-content');
+                const currentHeight = currentPageContent.scrollHeight;
+                
+                // Mesurer la hauteur de l'élément à ajouter
+                const elementHeight = measureContent.scrollHeight;
+                
+                // Si l'ajout dépasse la hauteur max, créer une nouvelle page
+                if (currentHeight + elementHeight > maxContentHeight && currentPageContent.children.length > 0) {
+                    pageNumber++;
+                    currentPage = createNewPage(pageNumber);
+                    container.appendChild(currentPage);
+                }
+                
+                // Ajouter l'élément à la page courante
+                currentPage.querySelector('.page-content').appendChild(element.cloneNode(true));
+            });
+            
+            // Nettoyer
+            document.body.removeChild(measurePage);
+            
+            // Sauvegarder le contenu dans projectData
+            projectData.content = content;
+        }
+        
+        /**
+         * Créer une nouvelle page avec case à cocher pour le numéro
+         */
+        function createNewPage(pageNumber) {
+            const page = document.createElement('div');
+            page.className = 'page-preview';
+            page.setAttribute('data-page-number', pageNumber);
+            
+            const pageContent = document.createElement('div');
+            pageContent.className = 'page-content book-content';
+            pageContent.style.fontFamily = projectData.settings.fontFamily;
+            pageContent.style.fontSize = projectData.settings.fontSize + 'pt';
+            
+            const pageNum = document.createElement('div');
+            pageNum.className = 'page-number';
+            pageNum.textContent = pageNumber;
+            
+            // Vérifier si le numéro doit être visible (par défaut oui)
+            if (projectData.pageNumbersVisible[pageNumber] === false) {
+                pageNum.classList.add('hidden-number');
+            }
+            
+            // Contrôles de la page
+            const controls = document.createElement('div');
+            controls.className = 'page-controls';
+            
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = projectData.pageNumbersVisible[pageNumber] !== false;
+            checkbox.onchange = function() {
+                togglePageNumber(pageNumber, this.checked);
+            };
+            
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(' N° page'));
+            controls.appendChild(label);
+            
+            page.appendChild(pageContent);
+            page.appendChild(pageNum);
+            page.appendChild(controls);
+            
+            return page;
+        }
+        
+        /**
+         * Basculer la visibilité du numéro de page
+         */
+        function togglePageNumber(pageNumber, visible) {
+            projectData.pageNumbersVisible[pageNumber] = visible;
+            
+            const page = document.querySelector(`.page-preview[data-page-number="${pageNumber}"]`);
+            if (page) {
+                const pageNumEl = page.querySelector('.page-number');
+                if (visible) {
+                    pageNumEl.classList.remove('hidden-number');
+                } else {
+                    pageNumEl.classList.add('hidden-number');
+                }
+            }
+        }
+        
+        /**
+         * Mise à jour de l'image de première de couverture
+         */
+        function updateFrontCoverImage() {
+            const input = document.getElementById('frontCoverImageInput');
+            const file = input.files[0];
+            
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                projectData.frontCoverImage = e.target.result;
+                updateCoverPreview();
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        /**
+         * Mise à jour de l'image de quatrième de couverture
+         */
+        function updateBackCoverImage() {
+            const input = document.getElementById('backCoverImageInput');
+            const file = input.files[0];
+            
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                projectData.backCoverImage = e.target.result;
+                updateCoverPreview();
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        /**
+         * Mise à jour de l'aperçu de la couverture
+         */
+        function updateCoverPreview() {
+            // Première de couverture
+            const frontCover = document.getElementById('frontCoverPreview');
+            frontCover.innerHTML = '';
+            
+            if (projectData.frontCoverImage) {
+                frontCover.classList.add('full-image');
+                const img = document.createElement('img');
+                img.src = projectData.frontCoverImage;
+                img.alt = 'Première de couverture';
+                frontCover.appendChild(img);
+            } else {
+                frontCover.classList.remove('full-image');
+                frontCover.style.background = '#e5e7eb';
+                frontCover.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400">Aucune image importée</div>';
+            }
+            
+            // Quatrième de couverture
+            const backCover = document.getElementById('backCoverPreview');
+            backCover.innerHTML = '';
+            
+            if (projectData.backCoverImage) {
+                backCover.classList.add('full-image');
+                const img = document.createElement('img');
+                img.src = projectData.backCoverImage;
+                img.alt = 'Quatrième de couverture';
+                backCover.appendChild(img);
+            } else {
+                backCover.classList.remove('full-image');
+                backCover.style.background = '#e5e7eb';
+                backCover.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400">Aucune image importée</div>';
+            }
+        }
+        
+        /**
+         * Application de la famille de police
+         */
+        function applyFontFamily() {
+            const fontFamily = document.getElementById('fontFamily').value;
+            projectData.settings.fontFamily = fontFamily;
+            
+            document.querySelectorAll('.book-content').forEach(el => {
+                el.style.fontFamily = fontFamily;
+            });
+        }
+        
+        /**
+         * Application de la taille de police
+         */
+        function applyFontSize() {
+            const fontSize = document.getElementById('fontSize').value;
+            projectData.settings.fontSize = fontSize;
+            
+            document.querySelectorAll('.book-content').forEach(el => {
+                el.style.fontSize = fontSize + 'pt';
+            });
+        }
+        
+        /**
+         * Sauvegarde du projet en JSON
+         */
+        function saveProject() {
+            // Mettre à jour les données du projet
+            projectData.content = document.getElementById('contentEditor').value;
+            projectData.settings.marginVertical = parseFloat(document.getElementById('marginVertical').value);
+            projectData.settings.marginHorizontal = parseFloat(document.getElementById('marginHorizontal').value);
+            projectData.settings.fontFamily = document.getElementById('fontFamily').value;
+            projectData.settings.fontSize = parseInt(document.getElementById('fontSize').value);
+            
+            // Convertir en JSON
+            const jsonData = JSON.stringify(projectData, null, 2);
+            
+            // Créer un blob et télécharger
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'livre-projet-' + Date.now() + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Projet sauvegardé avec succès !');
+        }
+        
+        /**
+         * Charger un projet depuis JSON
+         */
+        function loadProject() {
+            document.getElementById('projectLoader').click();
+        }
+        
+        function handleProjectLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Charger les données
+                    projectData = data;
+                    
+                    // Appliquer à l'interface
+                    document.getElementById('contentEditor').value = data.content || '';
+                    
+                    if (data.settings) {
+                        document.getElementById('marginVertical').value = data.settings.marginVertical || 1.5;
+                        document.getElementById('marginHorizontal').value = data.settings.marginHorizontal || 1.2;
+                        document.getElementById('fontFamily').value = data.settings.fontFamily || "'Crimson Text', serif";
+                        document.getElementById('fontSize').value = data.settings.fontSize || 11;
+                    }
+                    
+                    // Mettre à jour les aperçus
+                    updatePreview();
+                    updateCoverPreview();
+                    
+                    alert('✅ Projet chargé avec succès !');
+                } catch (error) {
+                    alert('❌ Erreur lors du chargement du projet : ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        /**
+         * Export en PDF avec toutes les pages
+         */
+        async function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            
+            // Créer un PDF au format 11 × 17.8 cm (110 × 178 mm)
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [110, 178]
+            });
+            
+            let isFirstPage = true;
+            
+            try {
+                // Exporter la première de couverture si elle existe
+                if (projectData.frontCoverImage) {
+                    // Créer une image temporaire pour obtenir les dimensions correctes
+                    const frontImg = new Image();
+                    frontImg.src = projectData.frontCoverImage;
+                    
+                    await new Promise((resolve, reject) => {
+                        frontImg.onload = resolve;
+                        frontImg.onerror = reject;
+                    });
+                    
+                    // Ajouter l'image directement au PDF (pleine page)
+                    if (isFirstPage) {
+                        isFirstPage = false;
+                    } else {
+                        pdf.addPage();
+                    }
+                    
+                    // Calculer les dimensions pour remplir toute la page
+                    pdf.addImage(projectData.frontCoverImage, 'JPEG', 0, 0, 110, 178, undefined, 'FAST');
+                }
+                
+                // Exporter toutes les pages de contenu
+                const pages = document.querySelectorAll('.page-preview');
+                
+                for (let i = 0; i < pages.length; i++) {
+                    // Masquer temporairement les contrôles pour l'export
+                    const controls = pages[i].querySelector('.page-controls');
+                    if (controls) controls.style.display = 'none';
+                    
+                    const pageCanvas = await html2canvas(pages[i], {
+                        scale: 3,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        useCORS: true,
+                        allowTaint: true
+                    });
+                    const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
+                    
+                    if (isFirstPage) {
+                        isFirstPage = false;
+                    } else {
+                        pdf.addPage();
+                    }
+                    pdf.addImage(pageImgData, 'JPEG', 0, 0, 110, 178, undefined, 'FAST');
+                    
+                    // Réafficher les contrôles
+                    if (controls) controls.style.display = '';
+                }
+                
+                // Exporter la quatrième de couverture si elle existe
+                if (projectData.backCoverImage) {
+                    // Créer une image temporaire
+                    const backImg = new Image();
+                    backImg.src = projectData.backCoverImage;
+                    
+                    await new Promise((resolve, reject) => {
+                        backImg.onload = resolve;
+                        backImg.onerror = reject;
+                    });
+                    
+                    pdf.addPage();
+                    
+                    // Ajouter l'image directement au PDF (pleine page)
+                    pdf.addImage(projectData.backCoverImage, 'JPEG', 0, 0, 110, 178, undefined, 'FAST');
+                }
+                
+                // Télécharger le PDF
+                pdf.save('livre-' + Date.now() + '.pdf');
+                
+                alert('✅ PDF exporté avec succès !');
+            } catch (error) {
+                alert('❌ Erreur lors de l\'export PDF : ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        // Initialisation au chargement de la page
+        window.addEventListener('DOMContentLoaded', function() {
+            updatePreview();
+            updateCoverPreview();
+        });
+    </script>
+</body>
+</html>
