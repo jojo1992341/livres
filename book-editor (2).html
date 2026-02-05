@@ -447,6 +447,7 @@
                                 type="number" 
                                 id="marginVertical" 
                                 value="1.5"
+                                onchange="applyLayoutSettings()"
                                 step="0.1"
                                 class="w-full px-4 py-2 border border-gray-300 rounded"
                             >
@@ -457,6 +458,7 @@
                                 type="number" 
                                 id="marginHorizontal" 
                                 value="1.2"
+                                onchange="applyLayoutSettings()"
                                 step="0.1"
                                 class="w-full px-4 py-2 border border-gray-300 rounded"
                             >
@@ -672,6 +674,11 @@
         function updatePreview() {
             const content = document.getElementById('contentEditor').value;
             const container = document.getElementById('previewContainer');
+
+            projectData.settings.marginVertical = parseFloat(document.getElementById('marginVertical').value);
+            projectData.settings.marginHorizontal = parseFloat(document.getElementById('marginHorizontal').value);
+            projectData.settings.fontFamily = document.getElementById('fontFamily').value;
+            projectData.settings.fontSize = parseInt(document.getElementById('fontSize').value, 10);
             
             // Créer un div temporaire pour parser le HTML
             const tempDiv = document.createElement('div');
@@ -689,6 +696,7 @@
             measurePage.style.position = 'absolute';
             measurePage.style.visibility = 'hidden';
             measurePage.style.left = '-9999px';
+            measurePage.style.padding = `${projectData.settings.marginVertical}cm ${projectData.settings.marginHorizontal}cm`;
             document.body.appendChild(measurePage);
             
             const measureContent = document.createElement('div');
@@ -751,6 +759,7 @@
             const page = document.createElement('div');
             page.className = 'page-preview';
             page.setAttribute('data-page-number', pageNumber);
+            page.style.padding = `${projectData.settings.marginVertical}cm ${projectData.settings.marginHorizontal}cm`;
             
             const pageContent = document.createElement('div');
             pageContent.className = 'page-content book-content';
@@ -885,22 +894,22 @@
         function applyFontFamily() {
             const fontFamily = document.getElementById('fontFamily').value;
             projectData.settings.fontFamily = fontFamily;
-            
-            document.querySelectorAll('.book-content').forEach(el => {
-                el.style.fontFamily = fontFamily;
-            });
+            updatePreview();
         }
         
         /**
          * Application de la taille de police
          */
         function applyFontSize() {
-            const fontSize = document.getElementById('fontSize').value;
+            const fontSize = parseInt(document.getElementById('fontSize').value, 10);
             projectData.settings.fontSize = fontSize;
-            
-            document.querySelectorAll('.book-content').forEach(el => {
-                el.style.fontSize = fontSize + 'pt';
-            });
+            updatePreview();
+        }
+
+        function applyLayoutSettings() {
+            projectData.settings.marginVertical = parseFloat(document.getElementById('marginVertical').value);
+            projectData.settings.marginHorizontal = parseFloat(document.getElementById('marginHorizontal').value);
+            updatePreview();
         }
         
         /**
