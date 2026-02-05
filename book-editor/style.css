@@ -1,0 +1,353 @@
+/*
+  Tailwind-inspired utility layer (autonome) + styles de l'application.
+  Les unités physiques en cm sont utilisées pour garantir une prévisualisation fidèle.
+*/
+
+:root {
+  --paper: #f9f5ef;
+  --panel: #fffdf9;
+  --ink: #1f1c17;
+  --muted: #6b645a;
+  --border: #d7cec2;
+  --accent: #4c3d2e;
+  --accent-soft: #efe8df;
+  --book-w: 11cm;
+  --book-h: 17.8cm;
+  --spine-w: 1.6cm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Georgia", "Times New Roman", serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, #fbf8f2 0%, #f0e8dc 100%);
+}
+
+.bg-paper { background: transparent; }
+.text-ink { color: var(--ink); }
+.text-2xl { font-size: 1.65rem; margin: 0; }
+.text-sm { font-size: 0.95rem; margin: 0.25rem 0 0; }
+.text-xs { font-size: 0.78rem; }
+.font-serif { letter-spacing: 0.01em; }
+.text-muted { color: var(--muted); }
+.border-b { border-bottom: 1px solid var(--border); }
+
+.app-header,
+.layout,
+.cover-area,
+.app-footer {
+  width: min(1400px, 96vw);
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 0;
+}
+
+.toolbar,
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.4rem;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: #b5a998;
+  background: #fff;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: #2f251c;
+}
+
+.btn-muted {
+  background: var(--accent-soft);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  padding: 0.9rem;
+}
+
+.panel-title h2,
+.cover-column h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.panel-title {
+  margin-bottom: 0.8rem;
+}
+
+.editor-canvas {
+  min-height: 70vh;
+  border: 1px dashed var(--border);
+  border-radius: 0.6rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  background: #fffcf8;
+}
+
+.editable-block {
+  outline: none;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  padding: 0.3rem;
+}
+
+.editable-block:focus {
+  border-color: #cfbea7;
+  background: #fff;
+}
+
+.block-title { font-size: 1.45rem; font-weight: 700; margin: 0.2rem 0; }
+.block-paragraph { font-size: 1rem; line-height: 1.55; }
+.block-quote {
+  font-size: 1.02rem;
+  line-height: 1.6;
+  border-left: 3px solid #cdb79b;
+  padding-left: 0.9rem;
+  color: #4a4138;
+  font-style: italic;
+}
+
+.block-image {
+  max-width: 100%;
+  border-radius: 0.35rem;
+  border: 1px solid #d7ccbf;
+}
+
+.preview-pages {
+  min-height: 70vh;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.book-page {
+  width: var(--book-w);
+  height: var(--book-h);
+  background: #fff;
+  border: 1px solid #c8b9a7;
+  box-shadow: 0 6px 18px rgba(62, 47, 31, 0.12);
+  overflow: hidden;
+  padding: 0.9cm;
+  position: relative;
+}
+
+.book-page-number {
+  position: absolute;
+  bottom: 0.45cm;
+  right: 0.75cm;
+  font-size: 0.72rem;
+  color: #776e62;
+}
+
+.cover-area {
+  margin-top: 1rem;
+}
+
+.cover-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
+  gap: 0.8rem;
+}
+
+.cover-column {
+  border: 1px solid #e0d7cb;
+  border-radius: 0.55rem;
+  padding: 0.7rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cover-input,
+.cover-textarea {
+  width: 100%;
+  border: 1px solid #cabaa5;
+  border-radius: 0.4rem;
+  padding: 0.45rem;
+  font-family: inherit;
+}
+
+.cover-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cover-preview {
+  margin-top: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.6rem;
+  padding: 0.8rem;
+  overflow-x: auto;
+}
+
+.cover-sheet {
+  width: calc(var(--book-w) * 2 + var(--spine-w));
+  height: var(--book-h);
+  display: grid;
+  grid-template-columns: var(--book-w) var(--spine-w) var(--book-w);
+  background: #fff;
+  border: 1px solid #b89f84;
+}
+
+.cover-panel,
+.spine-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 0.7cm;
+}
+
+.cover-panel img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.72;
+}
+
+.cover-text-layer {
+  position: relative;
+  z-index: 2;
+}
+
+.front-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.4rem; }
+.front-subtitle { font-size: 0.93rem; }
+.back-text { font-size: 0.84rem; line-height: 1.5; }
+
+.spine-panel {
+  background: #f0e5d7;
+  border-left: 1px solid #c5b199;
+  border-right: 1px solid #c5b199;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spine-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.app-footer {
+  margin-top: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 1fr; }
+  .cover-grid { grid-template-columns: 1fr; }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .app-header,
+  .layout,
+  .cover-area,
+  .app-footer {
+    width: 100%;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .editor-panel,
+  .preview-panel,
+  .cover-area .panel-title,
+  .toolbar,
+  .actions,
+  .text-muted,
+  .field-label,
+  .btn,
+  .file-btn {
+    display: none !important;
+  }
+
+  .preview-pages {
+    display: block;
+    min-height: auto;
+  }
+
+  .book-page {
+    margin: 0;
+    box-shadow: none;
+    border: none;
+    page-break-after: always;
+  }
+
+  .book-page:last-child {
+    page-break-after: auto;
+  }
+
+  .cover-preview {
+    border: none;
+    padding: 0;
+    margin-top: 1rem;
+    page-break-before: always;
+  }
+
+  .cover-sheet {
+    border: none;
+    page-break-after: auto;
+  }
+
+  @page {
+    size: 11cm 17.8cm;
+    margin: 0;
+  }
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Book Editor — 11 × 17,8 cm</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="bg-paper text-ink">
+    <header class="app-header border-b">
+      <div>
+        <h1 class="text-2xl font-serif">Book Editor</h1>
+        <p class="text-sm text-muted">
+          Prototype d’édition et d’export PDF au format 11 × 17,8 cm
+        </p>
+      </div>
+      <div class="toolbar">
+        <button id="addTitle" class="btn">Titre</button>
+        <button id="addParagraph" class="btn">Paragraphe</button>
+        <button id="addQuote" class="btn">Citation</button>
+        <label class="btn file-btn" for="insertImageInput">Image</label>
+        <input id="insertImageInput" type="file" accept="image/*" hidden />
+        <button id="clearContent" class="btn btn-muted">Effacer</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel editor-panel">
+        <div class="panel-title">
+          <h2>Éditeur intérieur</h2>
+          <p class="text-xs text-muted">
+            Double-cliquez un bloc pour le modifier directement.
+          </p>
+        </div>
+        <div id="editorCanvas" class="editor-canvas"></div>
+      </section>
+
+      <section class="panel preview-panel">
+        <div class="panel-title">
+          <h2>Prévisualisation paginée</h2>
+          <p class="text-xs text-muted">Pagination simulée selon la hauteur disponible.</p>
+        </div>
+        <div id="previewPages" class="preview-pages"></div>
+      </section>
+    </main>
+
+    <section class="cover-area panel">
+      <div class="panel-title">
+        <h2>Couverture complète</h2>
+        <p class="text-xs text-muted">Quatrième, dos, première de couverture.</p>
+      </div>
+      <div class="cover-grid">
+        <article class="cover-column">
+          <h3>Quatrième (verso)</h3>
+          <label class="field-label">Texte</label>
+          <textarea id="backText" class="cover-textarea"></textarea>
+          <label class="btn file-btn" for="backImageInput">Image verso</label>
+          <input id="backImageInput" type="file" accept="image/*" hidden />
+        </article>
+
+        <article class="cover-column">
+          <h3>Dos</h3>
+          <label class="field-label">Texte vertical</label>
+          <input id="spineText" class="cover-input" type="text" />
+        </article>
+
+        <article class="cover-column">
+          <h3>Première (recto)</h3>
+          <label class="field-label">Titre</label>
+          <input id="frontTitle" class="cover-input" type="text" />
+          <label class="field-label">Sous-titre</label>
+          <input id="frontSubtitle" class="cover-input" type="text" />
+          <label class="btn file-btn" for="frontImageInput">Image recto</label>
+          <input id="frontImageInput" type="file" accept="image/*" hidden />
+        </article>
+      </div>
+      <div id="coverPreview" class="cover-preview"></div>
+    </section>
+
+    <footer class="app-footer panel">
+      <div class="actions">
+        <button id="exportPdf" class="btn btn-primary">Exporter en PDF</button>
+        <button id="exportJson" class="btn">Exporter JSON</button>
+        <label class="btn file-btn" for="importJsonInput">Importer JSON</label>
+        <input id="importJsonInput" type="file" accept="application/json" hidden />
+      </div>
+      <p class="text-xs text-muted">
+        Le PDF est généré via la boîte d’impression du navigateur (mise en page @page).
+      </p>
+    </footer>
+
+    <template id="blockTemplate">
+      <div class="editable-block" contenteditable="true"></div>
+    </template>
+
+    <script src="script.js"></script>
+  </body>
+</html>
