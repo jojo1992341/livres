@@ -42,7 +42,6 @@
             text-indent: 1.5em;
         }
         
-        .book-content p:first-of-type,
         .book-content h1 + p,
         .book-content h2 + p {
             text-indent: 0;
@@ -307,11 +306,14 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Format du texte
                         </label>
-                        <div class="flex gap-2 mb-3">
+                        <div class="flex flex-wrap gap-2 mb-3">
                             <button onclick="insertTag('h1')" class="btn btn-secondary text-sm">Titre H1</button>
                             <button onclick="insertTag('h2')" class="btn btn-secondary text-sm">Titre H2</button>
                             <button onclick="insertTag('p')" class="btn btn-secondary text-sm">Paragraphe</button>
                             <button onclick="insertTag('blockquote')" class="btn btn-secondary text-sm">Citation</button>
+                            <button onclick="centerCurrentLine()" class="btn btn-secondary text-sm">Centrer ligne</button>
+                            <button onclick="italicizeCurrentLine()" class="btn btn-secondary text-sm">Italique ligne</button>
+                            <button onclick="insertLineBreak()" class="btn btn-secondary text-sm">Saut de ligne</button>
                         </div>
                     </div>
                     
@@ -445,6 +447,7 @@
                                 type="number" 
                                 id="marginVertical" 
                                 value="1.5"
+                                onchange="applyLayoutSettings()"
                                 step="0.1"
                                 class="w-full px-4 py-2 border border-gray-300 rounded"
                             >
@@ -455,6 +458,7 @@
                                 type="number" 
                                 id="marginHorizontal" 
                                 value="1.2"
+                                onchange="applyLayoutSettings()"
                                 step="0.1"
                                 class="w-full px-4 py-2 border border-gray-300 rounded"
                             >
@@ -576,6 +580,56 @@
             editor.focus();
             editor.selectionStart = editor.selectionEnd = start + newText.length;
         }
+
+        function getCurrentLineBounds(text, cursorPosition) {
+            const lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1;
+            const nextNewLine = text.indexOf('\n', cursorPosition);
+            const lineEnd = nextNewLine === -1 ? text.length : nextNewLine;
+
+            return { lineStart, lineEnd };
+        }
+
+        function centerCurrentLine() {
+            const editor = document.getElementById('contentEditor');
+            const cursorPosition = editor.selectionStart;
+            const { lineStart, lineEnd } = getCurrentLineBounds(editor.value, cursorPosition);
+            const currentLine = editor.value.substring(lineStart, lineEnd);
+
+            if (!currentLine.trim()) {
+                return;
+            }
+
+            const centeredLine = `<p style="text-align: center;">${currentLine.trim()}</p>`;
+            editor.value = editor.value.substring(0, lineStart) + centeredLine + editor.value.substring(lineEnd);
+            editor.focus();
+            editor.selectionStart = editor.selectionEnd = lineStart + centeredLine.length;
+        }
+
+        function italicizeCurrentLine() {
+            const editor = document.getElementById('contentEditor');
+            const cursorPosition = editor.selectionStart;
+            const { lineStart, lineEnd } = getCurrentLineBounds(editor.value, cursorPosition);
+            const currentLine = editor.value.substring(lineStart, lineEnd);
+
+            if (!currentLine.trim()) {
+                return;
+            }
+
+            const italicLine = `<p><em>${currentLine.trim()}</em></p>`;
+            editor.value = editor.value.substring(0, lineStart) + italicLine + editor.value.substring(lineEnd);
+            editor.focus();
+            editor.selectionStart = editor.selectionEnd = lineStart + italicLine.length;
+        }
+
+        function insertLineBreak() {
+            const editor = document.getElementById('contentEditor');
+            const cursorPosition = editor.selectionStart;
+            const lineBreak = '<br>\n';
+
+            editor.value = editor.value.substring(0, cursorPosition) + lineBreak + editor.value.substring(cursorPosition);
+            editor.focus();
+            editor.selectionStart = editor.selectionEnd = cursorPosition + lineBreak.length;
+        }
         
         /**
          * Insertion d'une image dans le contenu
@@ -620,6 +674,11 @@
         function updatePreview() {
             const content = document.getElementById('contentEditor').value;
             const container = document.getElementById('previewContainer');
+
+            projectData.settings.marginVertical = parseFloat(document.getElementById('marginVertical').value);
+            projectData.settings.marginHorizontal = parseFloat(document.getElementById('marginHorizontal').value);
+            projectData.settings.fontFamily = document.getElementById('fontFamily').value;
+            projectData.settings.fontSize = parseInt(document.getElementById('fontSize').value, 10);
             
             // Créer un div temporaire pour parser le HTML
             const tempDiv = document.createElement('div');
@@ -637,6 +696,7 @@
             measurePage.style.position = 'absolute';
             measurePage.style.visibility = 'hidden';
             measurePage.style.left = '-9999px';
+            measurePage.style.padding = `${projectData.settings.marginVertical}cm ${projectData.settings.marginHorizontal}cm`;
             document.body.appendChild(measurePage);
             
             const measureContent = document.createElement('div');
@@ -699,6 +759,7 @@
             const page = document.createElement('div');
             page.className = 'page-preview';
             page.setAttribute('data-page-number', pageNumber);
+            page.style.padding = `${projectData.settings.marginVertical}cm ${projectData.settings.marginHorizontal}cm`;
             
             const pageContent = document.createElement('div');
             pageContent.className = 'page-content book-content';
@@ -833,22 +894,22 @@
         function applyFontFamily() {
             const fontFamily = document.getElementById('fontFamily').value;
             projectData.settings.fontFamily = fontFamily;
-            
-            document.querySelectorAll('.book-content').forEach(el => {
-                el.style.fontFamily = fontFamily;
-            });
+            updatePreview();
         }
         
         /**
          * Application de la taille de police
          */
         function applyFontSize() {
-            const fontSize = document.getElementById('fontSize').value;
+            const fontSize = parseInt(document.getElementById('fontSize').value, 10);
             projectData.settings.fontSize = fontSize;
-            
-            document.querySelectorAll('.book-content').forEach(el => {
-                el.style.fontSize = fontSize + 'pt';
-            });
+            updatePreview();
+        }
+
+        function applyLayoutSettings() {
+            projectData.settings.marginVertical = parseFloat(document.getElementById('marginVertical').value);
+            projectData.settings.marginHorizontal = parseFloat(document.getElementById('marginHorizontal').value);
+            updatePreview();
         }
         
         /**
